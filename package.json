@@ -1,0 +1,28 @@
+{
+  "name": "sfdx-migrate",
+  "version": "1.0.0",
+  "description": "A npm package that can be used to migrate data from one environment to another in Salesforce.",
+  "main": "import.js",
+  "scripts": {
+    "test": "node export.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aneeshbhat1/sfdx-migrate.git"
+  },
+  "author": "Aneesh Bhat",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aneeshbhat1/sfdx-migrate/issues"
+  },
+  "homepage": "https://github.com/aneeshbhat1/sfdx-migrate#readme",
+  "dependencies": {
+    "bluebird": "^3.7.2",
+    "fs": "0.0.1-security",
+    "jsforce": "^1.9.3",
+    "lodash": "^4.17.15",
+    "node-command-line": "^1.0.2",
+    "prompt": "^1.0.0",
+    "sfdx-cli": "^7.44.0"
+  }
+}
