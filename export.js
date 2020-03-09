@@ -3,7 +3,6 @@ const cmd = require('node-command-line'),
     fs = require('fs'),
     { exec } = require('child_process'),
     util = require('util'),
-    queries = require('./queries.json'),
     loginModule = require('./login.js'),
     execPromise = util.promisify(exec);
 
@@ -24,14 +23,14 @@ const schema = {
     };
 
 module.exports = {
-    export : () => {
+    export : (projectLocation) => {
         loginModule.login(schema)
         .then(result => {
-            exportData(result);
+            exportData(result, projectLocation);
         })
         .catch(err => {
             console.log(err);
-        })
+        });
     }
 }
 
@@ -43,7 +42,18 @@ function strMapToObj(strMap) {
     return obj;
 }
 
-function exportData(result) {
+function exportData(result, projectLocation) {
+    let queries;
+    try {
+        if (fs.existsSync(projectLocation +'/queries.json')) {
+            let queriesFile = fs.readFileSync(projectLocation +'/queries.json', 'utf8');
+            queries = JSON.parse(queriesFile);
+        }
+    }
+    catch(err) {
+        console.log('queries.json file was not in the right format. Please refer to the documentation');
+    }
+
     if(!queries) {
         console.log('queries.json file content is not the right format. Please refer to the documentation');
         return;
@@ -51,24 +61,24 @@ function exportData(result) {
 
     let promiseArray = [];
     queries.forEach(query => {
-        const promise = execPromise('sfdx force:data:tree:export --query "' + query.Query + '" --outputdir sfdx-out --plan -u ' + result.Alias);
+        const promise = execPromise('sfdx force:data:tree:export --query "' + query.Query + '" --outputdir '+projectLocation+'/sfdx-out --plan -u ' + result.Alias);
         promise.then(result => {
             console.log('Data retrieved successfully for ' + query.Type);
         })
         .catch(err => {
             console.log(err);
-        })
+        });
         promiseArray = [...promiseArray, promise];
     });
 
     Promise.all(promiseArray).then(function (values) {
         let objectDataMap = new Map();
-        if (!fs.existsSync('sfdx-out-processed/')) {
-            fs.mkdirSync('sfdx-out-processed/');
+        if (!fs.existsSync(projectLocation+'/sfdx-out-processed/')) {
+            fs.mkdirSync(projectLocation+'/sfdx-out-processed/');
         }
         queries.forEach(query => {
-            if (fs.existsSync('sfdx-out/' + query.Type + 's.json')) {
-                let objectDataFile = fs.readFileSync('sfdx-out/' + query.Type + 's.json', 'utf8');
+            if (fs.existsSync(projectLocation+'/sfdx-out/' + query.Type + 's.json')) {
+                let objectDataFile = fs.readFileSync(projectLocation+'/sfdx-out/' + query.Type + 's.json', 'utf8');
                 objectDataMap.set(query.Type, JSON.parse(objectDataFile));
             }
         });
@@ -123,18 +133,18 @@ function exportData(result) {
                     });
                 }
             });
-            fs.copyFile('sfdx-out/' + type + '-plan.json', 'sfdx-out-processed/' + type + '-plan.json', function (err) {
+            fs.copyFile(projectLocation+'/sfdx-out/' + type + '-plan.json', projectLocation+'/sfdx-out-processed/' + type + '-plan.json', function (err) {
                 if (err) throw err;
                 console.log('Plan copied successfull for object : ' + type);
             });
 
-            fs.writeFile('sfdx-out-processed/' + type + 's.json', JSON.stringify(value, null, 4), function (err) {
+            fs.writeFile(projectLocation+'/sfdx-out-processed/' + type + 's.json', JSON.stringify(value, null, 4), function (err) {
                 if (err) throw err;
                 console.log('Input files processed successfully for object :' + type);
             });
         });
 
-        fs.writeFile('sfdx-out-processed/dependency.json', JSON.stringify(strMapToObj(finalObjectDependencyMap), null, 4), function (err) {
+        fs.writeFile(projectLocation+'/sfdx-out-processed/dependency.json', JSON.stringify(strMapToObj(finalObjectDependencyMap), null, 4), function (err) {
             if (err) throw err;
             console.log('Dependency created successfully.');
         });

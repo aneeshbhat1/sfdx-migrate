@@ -4,8 +4,7 @@ const prompt = require('prompt'),
     fs=require('fs'),
     util = require('util'),
     exec = require('child_process'),
-    loginModule = require('./login.js'),
-    queries = require('./queries.json');
+    loginModule = require('./login.js');
 const schema = {
         properties: {
             URL: {
@@ -24,10 +23,10 @@ const schema = {
     };
 
 module.exports = {
-    import : () => {
+    import : (projectLocation) => {
         loginModule.login(schema)
         .then(result => {
-            importData(result);
+            importData(result, projectLocation);
         })
         .catch(err => {
             console.log(err);
@@ -35,16 +34,27 @@ module.exports = {
     }
 }
 
-function importData(result) {  
+function importData(result, projectLocation) {  
+    let queries;
+    try {
+        if (fs.existsSync(projectLocation +'/queries.json')) {
+            let queriesFile = fs.readFileSync(projectLocation +'/queries.json', 'utf8');
+            queries = JSON.parse(queriesFile);
+        }
+    }
+    catch(err) {
+        console.log('queries.json file was not in the right format. Please refer to the documentation');
+    }
+
     if(!queries) {
-        console.log('queries.json file content is not the right format. Please refer to the documentation');
+        console.log('queries.json file does not exist in the project root directory. Please refer to the documentation');
         return;
     }
 
     let objectDataMap = new Map();
     queries.forEach(query => {
-        if(fs.existsSync('sfdx-out-processed/'+query.Type+'s.json')) {
-            let objectDataFile = fs.readFileSync('sfdx-out-processed/'+query.Type+'s.json', 'utf8');
+        if(fs.existsSync(projectLocation+'/sfdx-out-processed/'+query.Type+'s.json')) {
+            let objectDataFile = fs.readFileSync(projectLocation+'/sfdx-out-processed/'+query.Type+'s.json', 'utf8');
             objectDataMap.set(query.Type, JSON.parse(objectDataFile));
         }
         else {
@@ -52,7 +62,7 @@ function importData(result) {
         }
     });
 
-    let dependencyMap = fs.readFileSync('sfdx-out-processed/dependency.json', 'utf8');
+    let dependencyMap = fs.readFileSync(projectLocation+'/sfdx-out-processed/dependency.json', 'utf8');
 
     objectDataMap.forEach((value, type) => {
         try {
@@ -75,11 +85,11 @@ function importData(result) {
                 importRecursively(0, 200, resolvedRecords, objectDataMap, type, result);
             } while(resolvedRecords.length != 0)
     
-            fs.writeFileSync('sfdx-out-processed/'+type+'s.json', JSON.stringify(value,null,4));
+            fs.writeFileSync(projectLocation+'/sfdx-out-processed/'+type+'s.json', JSON.stringify(value,null,4));
     
-            let dependencyMap = JSON.parse(fs.readFileSync('sfdx-out-processed/dependency.json', 'utf8'));
+            let dependencyMap = JSON.parse(fs.readFileSync(projectLocation+'/sfdx-out-processed/dependency.json', 'utf8'));
             dependencyMap[type].forEach(dependentObjectType => {
-                fs.writeFileSync('sfdx-out-processed/'+dependentObjectType+'s.json', JSON.stringify(objectDataMap.get(dependentObjectType),null,4));
+                fs.writeFileSync(projectLocation+'/sfdx-out-processed/'+dependentObjectType+'s.json', JSON.stringify(objectDataMap.get(dependentObjectType),null,4));
             });
             console.log('Data import for object '+type+' completed successfully');
         }
@@ -94,15 +104,15 @@ function importRecursively(startIndex, endIndex, records, objectDataMap, type, r
     if(!records || records.length == 0 ) {
         return;
     }
-    fs.writeFileSync('sfdx-out-processed/tempFile.json', 
+    fs.writeFileSync(projectLocation+'/sfdx-out-processed/tempFile.json', 
         JSON.stringify({ "records" : ((records.length <  endIndex) ? records : _.slice(records, startIndex, endIndex))}, null, 4));
-    let plan = fs.readFileSync('sfdx-out-processed/'+type+'-plan.json', 'utf8');
+    let plan = fs.readFileSync(projectLocation+'/sfdx-out-processed/'+type+'-plan.json', 'utf8');
     const parsedPlan = JSON.parse(plan);
     parsedPlan[0].files[0] = 'tempFile.json';
     parsedPlan[0].saveRefs = true;
     parsedPlan[0].resolveRefs = true;
-    fs.writeFileSync('sfdx-out-processed/'+type+'-plan.json', JSON.stringify(parsedPlan, null, 4));
-    let data = exec.execSync('sfdx force:data:tree:import -p sfdx-out-processed/'+type+'-plan.json -u ' + result.Alias);
+    fs.writeFileSync(projectLocation+'/sfdx-out-processed/'+type+'-plan.json', JSON.stringify(parsedPlan, null, 4));
+    let data = exec.execSync('sfdx force:data:tree:import -p '+projectLocation+'/sfdx-out-processed/'+type+'-plan.json -u ' + result.Alias);
     let resolvedReferences = data.toString().split('\n');
     let resolvedRefMap = new Map();
     resolvedReferences.forEach(entry => {
@@ -126,7 +136,7 @@ function importRecursively(startIndex, endIndex, records, objectDataMap, type, r
         }
     });
 
-    let dependencyMap = JSON.parse(fs.readFileSync('sfdx-out-processed/dependency.json', 'utf8'));
+    let dependencyMap = JSON.parse(fs.readFileSync(projectLocation+'/sfdx-out-processed/dependency.json', 'utf8'));
     dependencyMap[type].forEach(dependentObjectType => {
         objectDataMap.get(dependentObjectType).records.forEach(record => {
             for(let prop in record) {
