@@ -1,4 +1,4 @@
-# Project Title
+# sfdx-migrate
 
 This repository contains code to a npm package that can be used to migrate configuration data from one environment to another in Salesforce. The tool is based on the Org data commands offered by SFDX. However, this tries to overcome most of the limitations of the SFDX data commands with just a few lines of javascript code.
 
