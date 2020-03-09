@@ -5,8 +5,9 @@ const cmd = require('node-command-line'),
     util = require('util'),
     queries = require('./queries.json'),
     loginModule = require('./login.js'),
-    execPromise = util.promisify(exec),
-    schema = {
+    execPromise = util.promisify(exec);
+
+const schema = {
         properties: {
             URL: {
                 name: 'sourceURL',
@@ -22,13 +23,17 @@ const cmd = require('node-command-line'),
         }
     };
 
-    loginModule.login(schema)
-    .then(result => {
-        console.log(result);
-        exportData(result);
-    })
-    .catch(err => {
-    });
+module.exports = {
+    export : () => {
+        loginModule.login(schema)
+        .then(result => {
+            exportData(result);
+        })
+        .catch(err => {
+            console.log(err);
+        })
+    }
+}
 
 function strMapToObj(strMap) {
     let obj = Object.create(null);

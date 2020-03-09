@@ -5,8 +5,8 @@ const prompt = require('prompt'),
     util = require('util'),
     exec = require('child_process'),
     loginModule = require('./login.js'),
-    queries = require('./queries.json'),
-        schema = {
+    queries = require('./queries.json');
+const schema = {
         properties: {
             URL: {
                 name: 'destURL',
@@ -23,14 +23,17 @@ const prompt = require('prompt'),
         }
     };
 
-
-// loginModule.login(schema)
-// .then(result => {
-//     importData(result);
-// })
-// .catch(err => {
-// });
-importData({"Alias" : "P2RDemo"});
+module.exports = {
+    import : () => {
+        loginModule.login(schema)
+        .then(result => {
+            importData(result);
+        })
+        .catch(err => {
+            console.log(err);
+        });
+    }
+}
 
 function importData(result) {  
     if(!queries) {
@@ -143,6 +146,5 @@ function importRecursively(startIndex, endIndex, records, objectDataMap, type, r
             objectDataMap,
             type,
             result);
-    }
-        
+    }       
 }
