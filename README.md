@@ -29,3 +29,6 @@ migrate.export(__dirname);
 migrate.import(__dirname);
 ```
 
+### More information
+For more information about the tool, please visit the following link https://medium.com/@aneudupi/configuration-data-migration-in-salesforce-ce3e2041bc25
+
