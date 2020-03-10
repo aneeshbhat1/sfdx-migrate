@@ -73,7 +73,7 @@ function importData(result, projectLocation) {
                 });
                 return selfDependentProps && selfDependentProps.length == 0 ;
             });
-            importRecursively(0, 200, independentRecords, objectDataMap, type, result);
+            importRecursively(0, 200, independentRecords, objectDataMap, type, result, projectLocation);
             let resolvedRecords;
             do {
                 resolvedRecords = _.filter(value.records, function(record) {
@@ -82,15 +82,17 @@ function importData(result, projectLocation) {
                     });
                     return selfDependentProps && selfDependentProps.length == 0 && !Object.keys(record).includes('Id');
                 });
-                importRecursively(0, 200, resolvedRecords, objectDataMap, type, result);
+                importRecursively(0, 200, resolvedRecords, objectDataMap, type, result, projectLocation);
             } while(resolvedRecords.length != 0)
     
             fs.writeFileSync(projectLocation+'/sfdx-out-processed/'+type+'s.json', JSON.stringify(value,null,4));
     
             let dependencyMap = JSON.parse(fs.readFileSync(projectLocation+'/sfdx-out-processed/dependency.json', 'utf8'));
-            dependencyMap[type].forEach(dependentObjectType => {
-                fs.writeFileSync(projectLocation+'/sfdx-out-processed/'+dependentObjectType+'s.json', JSON.stringify(objectDataMap.get(dependentObjectType),null,4));
-            });
+            if(dependencyMap[type]) {
+                dependencyMap[type].forEach(dependentObjectType => {
+                    fs.writeFileSync(projectLocation+'/sfdx-out-processed/'+dependentObjectType+'s.json', JSON.stringify(objectDataMap.get(dependentObjectType),null,4));
+                });
+            }
             console.log('Data import for object '+type+' completed successfully');
         }
         catch(err) {
@@ -100,7 +102,7 @@ function importData(result, projectLocation) {
 
 }
 
-function importRecursively(startIndex, endIndex, records, objectDataMap, type, result) {
+function importRecursively(startIndex, endIndex, records, objectDataMap, type, result, projectLocation) {
     if(!records || records.length == 0 ) {
         return;
     }
@@ -130,23 +132,29 @@ function importRecursively(startIndex, endIndex, records, objectDataMap, type, r
         }
     });
 
-    objectDataMap.get(type).records.forEach(record => {
-        if(resolvedRefMap.has('@'+record.attributes.referenceId)) {
-            record['Id'] = resolvedRefMap.get('@'+record.attributes.referenceId);
-        }
-    });
-
-    let dependencyMap = JSON.parse(fs.readFileSync(projectLocation+'/sfdx-out-processed/dependency.json', 'utf8'));
-    dependencyMap[type].forEach(dependentObjectType => {
-        objectDataMap.get(dependentObjectType).records.forEach(record => {
-            for(let prop in record) {
-                if(_.startsWith(record[prop],'@'+type+'Ref') && resolvedRefMap.has(record[prop])) {
-                    record[prop] = resolvedRefMap.get(record[prop]);
-                }
+    if(objectDataMap.has(type)) {
+        objectDataMap.get(type).records.forEach(record => {
+            if(resolvedRefMap.has('@'+record.attributes.referenceId)) {
+                record['Id'] = resolvedRefMap.get('@'+record.attributes.referenceId);
             }
         });
-    });
+    }
 
+    let dependencyMap = JSON.parse(fs.readFileSync(projectLocation+'/sfdx-out-processed/dependency.json', 'utf8'));
+    if(dependencyMap[type]) {
+        dependencyMap[type].forEach(dependentObjectType => {
+            objectDataMap.get(dependentObjectType).records.forEach(record => {
+                for(let prop in record) {
+                    if(_.startsWith(record[prop],'@'+type+'Ref') && resolvedRefMap.has(record[prop])) {
+                        record[prop] = resolvedRefMap.get(record[prop]);
+                    }
+                }
+            });
+        });
+    }
+
+    console.log(endIndex + 'records inserted successfully');
+    
     let numberOfRecords = records.length;
     if(endIndex < numberOfRecords) {
         importRecursively(
@@ -155,6 +163,7 @@ function importRecursively(startIndex, endIndex, records, objectDataMap, type, r
             records,
             objectDataMap,
             type,
-            result);
+            result,
+            projectLocation);
     }       
 }

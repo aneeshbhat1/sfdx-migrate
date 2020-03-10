@@ -1,6 +1,6 @@
 {
   "name": "sfdx-migrate",
-  "version": "2.0.4",
+  "version": "2.0.8",
   "description": "A npm package that can be used to migrate data from one environment to another in Salesforce.",
   "main": "index.js",
   "scripts": {
