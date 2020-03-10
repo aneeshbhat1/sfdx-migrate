@@ -31,5 +31,5 @@ migrate.export(__dirname); or migrate.import(__dirname);
 ```
 
 ### More information
-For more information about the tool, please visit the following link https://medium.com/@aneudupi/configuration-data-migration-in-salesforce-ce3e2041bc25
+For more information about the tool, please visit the following link https://medium.com/p/configuration-data-migration-in-salesforce-ce3e2041bc25?source=email-fa3af14d52f8--writer.postDistributed&sk=b6f3756d7a3e579b8458e9e242b55751
 
