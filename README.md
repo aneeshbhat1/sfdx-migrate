@@ -5,9 +5,11 @@ This repository contains code to a npm package that can be used to migrate confi
 ### Prerequisites
 
 The tool has the following Prerequisites:
-* queries.json file which contains the SOQL query to the list of objects that are to be migrated.
-* The __r.[APIName] notation is to be used on the SOQL queries to specify the relationships
+* queries.json file which contains the SOQL query to the list of objects that are to be migrated in the format specified in the sample file specified in the repository.
+* The __r.[APIName] notation is to be used on the SOQL queries to specify the relationships.
 * All data to be exported/imported should be specified in the above file before invoking the tool.
+* Make sure the fields specified in SOQL have appropriate access.
+* Exclude read-only, formula fields from SOQL.
 
 ### Installation
 
@@ -25,8 +27,7 @@ Once installed successfully, you can get going without much difficulty by using 
 
 ```
 const migrate = require('sfdx-migrate');
-migrate.export(__dirname);
-migrate.import(__dirname);
+migrate.export(__dirname); or migrate.import(__dirname);
 ```
 
 ### More information
